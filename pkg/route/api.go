@@ -1,7 +1,7 @@
 package route
 
 type Route struct {
-	Destnation    string `json:"destination"`
+	Destination   string `json:"destination"`
 	Mask          string `json:"mask"`
 	Gateway       string `json:"gateway"`
 	InterfaceIP   string `json:"interfaceIp"`
@@ -14,6 +14,6 @@ type Route struct {
 func (r *Route) IsDefaultRoute() bool {
 	return r.Type == "Indirect" &&
 		r.Protocol == "Static Route" &&
-		r.Destnation == "0.0.0.0" &&
+		r.Destination == "0.0.0.0" &&
 		r.Mask == "0.0.0.0"
 }
