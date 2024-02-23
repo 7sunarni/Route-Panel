@@ -85,7 +85,7 @@ func Add(route Route) error {
 	aim.Type = 4
 	aim.Proto = 3
 
-	if n := copy(aim.Dest[:], []byte(net.ParseIP(route.Destnation).To4())); n != 4 {
+	if n := copy(aim.Dest[:], []byte(net.ParseIP(route.Destination).To4())); n != 4 {
 		return fmt.Errorf("copy destination failed:  %v != 4", n)
 	}
 	if n := copy(aim.Mask[:], []byte(net.ParseIP(route.Mask).To4())); n != 4 {
@@ -111,7 +111,7 @@ func Delete(rr Route) error {
 			continue
 		}
 
-		if net.IPv4(r.Dest[0], r.Dest[1], r.Dest[2], r.Dest[3]).String() != rr.Destnation {
+		if net.IPv4(r.Dest[0], r.Dest[1], r.Dest[2], r.Dest[3]).String() != rr.Destination {
 			continue
 		}
 
@@ -261,7 +261,7 @@ func (rt *routeManager) ListRoutes() ([]Route, error) {
 			}
 		}
 		ret = append(ret, Route{
-			Destnation:    net.IPv4(route.Dest[0], route.Dest[1], route.Dest[2], route.Dest[3]).String(),
+			Destination:   net.IPv4(route.Dest[0], route.Dest[1], route.Dest[2], route.Dest[3]).String(),
 			Mask:          net.IPv4(route.Mask[0], route.Mask[1], route.Mask[2], route.Mask[3]).String(),
 			Gateway:       net.IPv4(route.NextHop[0], route.NextHop[1], route.NextHop[2], route.NextHop[3]).String(),
 			InterfaceIP:   ifIp,
