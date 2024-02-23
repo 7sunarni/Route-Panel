@@ -16,7 +16,7 @@ type routeManager struct {
 	getIpForwardTable    *syscall.LazyProc
 	createIpForwardEntry *syscall.LazyProc
 	deleteIpForwardEntry *syscall.LazyProc
-	netInterfaces        map[int]net.IP
+	netInterfaces        map[int]netInterface
 }
 
 type RouteRule struct {
@@ -49,7 +49,7 @@ func init() {
 		getIpForwardTable:    getIpForwardTable,
 		createIpForwardEntry: createIpForwardEntry,
 		deleteIpForwardEntry: deleteIpForwardEntry,
-		netInterfaces:        make(map[int]net.IP),
+		netInterfaces:        make(map[int]netInterface),
 	}
 }
 
@@ -70,7 +70,7 @@ func Add(route Route) error {
 			continue
 		}
 
-		if router.getInterfaceIP(int(r.IfIndex)).String() != route.Interface {
+		if router.getInterfaceIP(int(r.IfIndex)).ip.String() != route.InterfaceIP {
 			continue
 		}
 		aim = &r
@@ -78,7 +78,7 @@ func Add(route Route) error {
 	}
 
 	if aim == nil {
-		return fmt.Errorf("don not find interface %s", route.Interface)
+		return fmt.Errorf("don not find interface %s", route.InterfaceIP)
 	}
 
 	aim.Metric1 = routeMetric
@@ -107,7 +107,7 @@ func Delete(rr Route) error {
 			continue
 		}
 
-		if router.getInterfaceIP(int(r.IfIndex)).String() != rr.Interface {
+		if router.getInterfaceIP(int(r.IfIndex)).ip.String() != rr.InterfaceIP {
 			continue
 		}
 
@@ -175,9 +175,14 @@ func (rt *routeManager) delRoute(rr *RouteRule) error {
 	return nil
 }
 
-func (rt *routeManager) getInterfaceIP(index int) net.IP {
+type netInterface struct {
+	ip   net.IP
+	name string
+}
+
+func (rt *routeManager) getInterfaceIP(index int) *netInterface {
 	if ip, ok := rt.netInterfaces[index]; ok {
-		return ip
+		return &ip
 	}
 
 	netInf, err := net.InterfaceByIndex(index)
@@ -199,8 +204,9 @@ func (rt *routeManager) getInterfaceIP(index int) net.IP {
 		}
 
 		if ip.IsGlobalUnicast() && (ip.To4() != nil || ip.To16() != nil) {
-			rt.netInterfaces[index] = ip
-			return ip
+			ret := &netInterface{ip: ip, name: netInf.Name}
+			rt.netInterfaces[index] = *ret
+			return ret
 		}
 	}
 	return nil
@@ -245,14 +251,24 @@ func (rt *routeManager) ListRoutes() ([]Route, error) {
 
 	ret := make([]Route, 0)
 	for _, route := range routes {
+		netIf := rt.getInterfaceIP(int(route.IfIndex))
+		ifIp := ""
+		ifName := ""
+		if netIf != nil {
+			ifName = netIf.name
+			if netIf.ip != nil {
+				ifIp = netIf.ip.String()
+			}
+		}
 		ret = append(ret, Route{
-			Destnation: net.IPv4(route.Dest[0], route.Dest[1], route.Dest[2], route.Dest[3]).String(),
-			Mask:       net.IPv4(route.Mask[0], route.Mask[1], route.Mask[2], route.Mask[3]).String(),
-			Gateway:    net.IPv4(route.NextHop[0], route.NextHop[1], route.NextHop[2], route.NextHop[3]).String(),
-			Interface:  rt.getInterfaceIP(int(route.IfIndex)).String(),
-			Metric:     strconv.Itoa(int(route.Metric1)),
-			Type:       rt.getType(route.Type),
-			Protocol:   rt.getProtocol(route.Proto),
+			Destnation:    net.IPv4(route.Dest[0], route.Dest[1], route.Dest[2], route.Dest[3]).String(),
+			Mask:          net.IPv4(route.Mask[0], route.Mask[1], route.Mask[2], route.Mask[3]).String(),
+			Gateway:       net.IPv4(route.NextHop[0], route.NextHop[1], route.NextHop[2], route.NextHop[3]).String(),
+			InterfaceIP:   ifIp,
+			InterfaceName: ifName,
+			Metric:        strconv.Itoa(int(route.Metric1)),
+			Type:          rt.getType(route.Type),
+			Protocol:      rt.getProtocol(route.Proto),
 		})
 	}
 

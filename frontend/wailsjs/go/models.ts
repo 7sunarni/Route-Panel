@@ -4,7 +4,8 @@ export namespace route {
 	    destination: string;
 	    mask: string;
 	    gateway: string;
-	    interface: string;
+	    interfaceIp: string;
+	    interfaceName: string;
 	    metric: string;
 	    type: string;
 	    protocol: string;
@@ -18,7 +19,8 @@ export namespace route {
 	        this.destination = source["destination"];
 	        this.mask = source["mask"];
 	        this.gateway = source["gateway"];
-	        this.interface = source["interface"];
+	        this.interfaceIp = source["interfaceIp"];
+	        this.interfaceName = source["interfaceName"];
 	        this.metric = source["metric"];
 	        this.type = source["type"];
 	        this.protocol = source["protocol"];

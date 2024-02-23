@@ -20,9 +20,9 @@ func TestListRoute(t *testing.T) {
 
 func TestAddRoute(t *testing.T) {
 	if err := Add(Route{
-		Interface:  "192.168.149.1",
-		Destnation: "192.168.149.125",
-		Mask:       "255.255.255.255",
+		InterfaceIP: "192.168.149.1",
+		Destnation:  "192.168.149.125",
+		Mask:        "255.255.255.255",
 	}); err != nil {
 		t.Fatal(err)
 	}
@@ -30,9 +30,9 @@ func TestAddRoute(t *testing.T) {
 
 func TestDelRoute(t *testing.T) {
 	if err := Delete(Route{
-		Interface:  "192.168.149.1",
-		Destnation: "192.168.149.125",
-		Mask:       "255.255.255.255",
+		InterfaceIP: "192.168.149.1",
+		Destnation:  "192.168.149.125",
+		Mask:        "255.255.255.255",
 	}); err != nil {
 		t.Fatal(err)
 	}

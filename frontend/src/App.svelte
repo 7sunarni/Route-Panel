@@ -26,6 +26,7 @@
     "Destination",
     "Mask",
     "Gateway",
+    "Interface Name",
     "Interface IP",
     "Metric",
     "Type",
@@ -91,7 +92,8 @@
         <td contenteditable="false" bind:innerHTML={route.destination} />
         <td contenteditable="false" bind:innerHTML={route.mask} />
         <td contenteditable="false" bind:innerHTML={route.gateway} />
-        <td contenteditable="false" bind:innerHTML={route.interface} />
+        <td contenteditable="false" bind:innerHTML={route.interfaceName} />
+        <td contenteditable="false" bind:innerHTML={route.interfaceIp} />
         <td contenteditable="false" bind:innerHTML={route.metric} />
         <td contenteditable="false" bind:innerHTML={route.type} />
         <td contenteditable="false" bind:innerHTML={route.protocol} />
