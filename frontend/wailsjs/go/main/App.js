@@ -10,8 +10,8 @@ export function DeleteRoute(arg1) {
   return window['go']['main']['App']['DeleteRoute'](arg1);
 }
 
-export function Greet(arg1) {
-  return window['go']['main']['App']['Greet'](arg1);
+export function EditRoute(arg1, arg2) {
+  return window['go']['main']['App']['EditRoute'](arg1, arg2);
 }
 
 export function ListRoutes() {

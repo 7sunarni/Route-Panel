@@ -1,0 +1,38 @@
+const translations: { [key: string]: { [key: string]: string } } = {
+  en: {
+    "homepage.refresh": "Refresh",
+    "homepage.search": "search",
+    "homepage.addRoute": "Add",
+    "table.destination": "Destination",
+    "table.mask": "Mask",
+    "table.gateway": "Gateway",
+    "table.interfacaName": "Interface Name",
+    "table.options": "Options",
+    "table.delete": "Delete",
+    "table.edit": "Edit",
+    "page.prev": "Prev",
+    "page.next": "Next",
+    "addpage.title": "Edit Route",
+    "addpage.configbutton": "Config",
+    "addpage.cancelbuton": "Cancel",
+  },
+  中文: {
+    "homepage.refresh": "刷新",
+    "homepage.search": "搜索",
+    "homepage.addRoute": "添加",
+    "table.destination": "网络目标",
+    "table.mask": "网络掩码",
+    "table.gateway": "网关",
+    "table.interfacaName": "接口名",
+    "table.options": "选项",
+    "table.delete": "删除",
+    "table.edit": "编辑",
+    "page.prev": "上一页",
+    "page.next": "下一页",
+    "addpage.title": "编辑路由",
+    "addpage.configbutton": "确认",
+    "addpage.cancelbuton": "取消",
+  },
+};
+
+export default translations;

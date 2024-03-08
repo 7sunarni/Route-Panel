@@ -1,42 +1,79 @@
 <script lang="ts">
-  import type { route } from "wailsjs/go/models.js";
-  import { ListRoutes } from "../wailsjs/go/main/App.js";
+  import type { route } from "../wailsjs/go/models";
+  import { AddRoute, DeleteRoute, ListRoutes } from "../wailsjs/go/main/App.js";
   import { onMount } from "svelte";
+  import Routeview from "./route/Route.svelte";
+  import { i18n, locale, locales } from "./i18n/i18n.js";
 
-  let searchIP: string = "";
+  let header = [
+    $i18n("table.destination"),
+    $i18n("table.mask"),
+    $i18n("table.gateway"),
+    $i18n("table.interfacaName"),
+    $i18n("table.options"),
+  ];
+
+  const itemsPerPage: number = 10;
+
+  let searched: string = "";
 
   let currentPage: number = 0;
 
   let totalPagesRoutes: route.Route[][] = [];
   let currentPageRoutes: route.Route[] = [];
 
-  let itemsPerPage: number = 10;
   let totalRoutes: route.Route[] = [];
+
+  let showEdit: boolean = false;
+  let choosenRoute: route.Route;
+  let interfaceNames: { [key: string]: string } = {};
+  let filteredRoutes: route.Route[] = [];
 
   $: currentPageRoutes =
     totalPagesRoutes.length > 0 ? totalPagesRoutes[currentPage] : [];
 
-  function deleteRow(r: route.Route) {
-    totalRoutes = totalRoutes.filter(
-      (row: route.Route) => row.destination != r.destination,
-    );
+  function deleteRoute(r: route.Route) {
+    DeleteRoute(r).then(() => {
+      refresh();
+    });
   }
 
-  let header = [
-    "Destination",
-    "Mask",
-    "Gateway",
-    "Interface Name",
-    "Interface IP",
-    "Metric",
-    "Type",
-    "Protocol",
-    "Options",
-  ];
+  function addRoute(r: route.Route) {
+    AddRoute(r).then(() => {
+      refresh();
+    });
+  }
+
+  function onSearch(event: any) {
+    let search = event.target.value;
+    let filter: route.Route[] = [];
+
+    if (search !== "") {
+      totalRoutes.forEach((r) => {
+        if (
+          r.destination.includes(search) ||
+          r.gateway.includes(search) ||
+          r.interfaceName.includes(search)
+        ) {
+          filter.push(r);
+        }
+      });
+    } else {
+      filter = totalRoutes;
+    }
+
+    filteredRoutes = filter;
+    paginate(filteredRoutes);
+    setPage(currentPage);
+  }
+
+  function editRoute(choosen: route.Route) {
+    choosenRoute = choosen;
+    setShowEdit(true);
+  }
 
   const paginate = (rs: route.Route[]) => {
     const pages = Math.ceil(rs.length / itemsPerPage);
-
     const paginatedItems = Array.from({ length: pages }, (_, index) => {
       const start = index * itemsPerPage;
       return rs.slice(start, start + itemsPerPage);
@@ -54,12 +91,30 @@
     }
   };
 
-  function search() {
-    // todo
+  const setShowEdit = (e: boolean) => {
+    showEdit = e;
+  };
+
+  function onSaveEdit(old: route.Route, want: route.Route) {
+    if (old && old.destination !== "") {
+      deleteRoute(old);
+    }
+    want.interfaceIp = interfaceNames[want.interfaceName];
+    addRoute(want);
+    setShowEdit(false);
   }
 
   function refresh() {
     ListRoutes().then((result: route.Route[]) => {
+      result.forEach((r: route.Route) => {
+        if (r.interfaceName === "") {
+          return;
+        }
+        if (r.interfaceName in interfaceNames) {
+          return;
+        }
+        interfaceNames[r.interfaceName] = r.interfaceIp;
+      });
       totalRoutes = result;
       paginate(totalRoutes);
       setPage(currentPage);
@@ -68,22 +123,46 @@
 </script>
 
 <main>
+  <Routeview
+    rt={choosenRoute}
+    show={showEdit}
+    interfaceNames={Object.keys(interfaceNames)}
+    onOkay={onSaveEdit}
+    onCancel={() => setShowEdit(false)}
+  />
+
   <div class="input-box" id="input">
-    <button class="btn" on:click={refresh}>Refresh</button>
     <input
       autocomplete="off"
-      placeholder="Search IP"
-      bind:value={searchIP}
+      placeholder={$i18n("homepage.search")}
+      on:input={onSearch}
+      bind:value={searched}
       class="input"
       id="name"
       type="text"
     />
-    <button class="btn" on:click={search}>Search</button>
+    <button class="btn" on:click={refresh}>{$i18n("homepage.refresh")}</button>
+    <button
+      class="btn"
+      on:click={() =>
+        editRoute({
+          destination: "",
+          mask: "",
+          gateway: "",
+          interfaceIp: "",
+          interfaceName: "",
+        })}>{$i18n("homepage.addRoute")}</button
+    >
+    <select bind:value={$locale}>
+      {#each locales as l}
+        <option value={l}>{l}</option>
+      {/each}
+    </select>
   </div>
   <table>
     <tr>
       {#each header as column}
-        <th style="background-color: green">{column}</th>
+        <th>{column}</th>
       {/each}
     </tr>
 
@@ -93,12 +172,14 @@
         <td contenteditable="false" bind:innerHTML={route.mask} />
         <td contenteditable="false" bind:innerHTML={route.gateway} />
         <td contenteditable="false" bind:innerHTML={route.interfaceName} />
-        <td contenteditable="false" bind:innerHTML={route.interfaceIp} />
-        <td contenteditable="false" bind:innerHTML={route.metric} />
-        <td contenteditable="false" bind:innerHTML={route.type} />
-        <td contenteditable="false" bind:innerHTML={route.protocol} />
-        <button on:click={() => deleteRow(route)}>Delete</button>
-        <button>Edit</button>
+        <td>
+          <button on:click={() => editRoute(route)}
+            >{$i18n("table.edit")}</button
+          >
+          <button on:click={() => deleteRoute(route)}
+            >{$i18n("table.delete")}</button
+          >
+        </td>
       </tr>
     {/each}
   </table>
@@ -110,7 +191,7 @@
           class="btn-next-prev"
           on:click={() => setPage(currentPage - 1)}
         >
-          PREV
+          {$i18n("page.prev")}
         </button>
       </li>
 
@@ -132,70 +213,9 @@
           class="btn-next-prev"
           on:click={() => setPage(currentPage + 1)}
         >
-          NEXT
+          {$i18n("page.next")}
         </button>
       </li>
     </ul>
   </nav>
 </main>
-
-<style>
-  .input-box .btn {
-    width: 60px;
-    height: 30px;
-    line-height: 30px;
-    border-radius: 3px;
-    border: none;
-    margin: 40px 0 0 40px;
-    padding: 0 8px;
-    cursor: pointer;
-  }
-
-  .input-box .btn:hover {
-    background-image: linear-gradient(to top, #cfd9df 0%, #e2ebf0 100%);
-    color: #333333;
-  }
-
-  .input-box .input {
-    border: none;
-    border-radius: 3px;
-    outline: none;
-    height: 30px;
-    line-height: 30px;
-    padding: 0 10px;
-    background-color: rgba(240, 240, 240, 1);
-    -webkit-font-smoothing: antialiased;
-  }
-
-  .input-box .input:hover {
-    border: none;
-    background-color: rgba(255, 255, 255, 1);
-  }
-
-  .input-box .input:focus {
-    border: none;
-    background-color: rgba(255, 255, 255, 1);
-  }
-
-  table {
-    width: 100%;
-    border-collapse: collapse;
-    margin: 30px;
-  }
-  th,
-  td {
-    border: 1px solid black;
-    padding: 8px;
-    text-align: left;
-  }
-  th {
-    background-color: #f2f2f2;
-  }
-  nav {
-    justify-content: center; /* 水平居中 */
-  }
-  nav > ul {
-    list-style-type: none;
-    display: flex;
-  }
-</style>

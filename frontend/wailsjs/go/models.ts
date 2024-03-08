@@ -6,9 +6,6 @@ export namespace route {
 	    gateway: string;
 	    interfaceIp: string;
 	    interfaceName: string;
-	    metric: string;
-	    type: string;
-	    protocol: string;
 	
 	    static createFrom(source: any = {}) {
 	        return new Route(source);
@@ -21,9 +18,6 @@ export namespace route {
 	        this.gateway = source["gateway"];
 	        this.interfaceIp = source["interfaceIp"];
 	        this.interfaceName = source["interfaceName"];
-	        this.metric = source["metric"];
-	        this.type = source["type"];
-	        this.protocol = source["protocol"];
 	    }
 	}
 

@@ -4,7 +4,6 @@ import (
 	"errors"
 	"fmt"
 	"net"
-	"strconv"
 	"syscall"
 	"unsafe"
 )
@@ -19,7 +18,7 @@ type routeManager struct {
 	netInterfaces        map[int]netInterface
 }
 
-type RouteRule struct {
+type routeRule struct {
 	Dest      [4]byte //目标网络
 	Mask      [4]byte //掩码
 	Policy    uint32  //ForwardPolicy:0x0
@@ -63,7 +62,7 @@ func Add(route Route) error {
 		return err
 	}
 
-	var aim *RouteRule
+	var aim *routeRule
 	for rule := range rules {
 		r := rules[rule]
 		if r.Type != 3 {
@@ -86,10 +85,11 @@ func Add(route Route) error {
 	aim.Proto = 3
 
 	if n := copy(aim.Dest[:], []byte(net.ParseIP(route.Destination).To4())); n != 4 {
-		return fmt.Errorf("copy destination failed:  %v != 4", n)
+		return fmt.Errorf("copy destination failed %v != 4", n)
 	}
-	if n := copy(aim.Mask[:], []byte(net.ParseIP(route.Mask).To4())); n != 4 {
-		return fmt.Errorf("copy mask failed %v != 4", n)
+	mask := net.ParseIP(route.Mask).To4()
+	if n := copy(aim.Mask[:], []byte(mask)); n != 4 {
+		return fmt.Errorf("copy mask %v failed %v != 4", mask, n)
 	}
 	return router.addRoute(aim)
 }
@@ -100,7 +100,7 @@ func Delete(rr Route) error {
 		return err
 	}
 
-	var aim *RouteRule
+	var aim *routeRule
 	for i := range rs {
 		r := rs[i]
 		if r.Type != 3 {
@@ -128,8 +128,8 @@ func Delete(rr Route) error {
 	return router.delRoute(aim)
 }
 
-func (rt *routeManager) listRoutes() ([]RouteRule, error) {
-	buf := make([]byte, 4+unsafe.Sizeof(RouteRule{}))
+func (rt *routeManager) listRoutes() ([]routeRule, error) {
+	buf := make([]byte, 4+unsafe.Sizeof(routeRule{}))
 	buf_len := uint32(len(buf))
 
 	rt.getIpForwardTable.Call(uintptr(unsafe.Pointer(&buf[0])),
@@ -151,26 +151,26 @@ func (rt *routeManager) listRoutes() ([]RouteRule, error) {
 	}
 
 	num := *(*uint32)(unsafe.Pointer(&buf[0]))
-	routes := make([]RouteRule, num)
+	routes := make([]routeRule, num)
 	sr := uintptr(unsafe.Pointer(&buf[0])) + unsafe.Sizeof(num)
-	rowSize := unsafe.Sizeof(RouteRule{})
+	rowSize := unsafe.Sizeof(routeRule{})
 
 	// 安全检查
 	if len(buf) < int((unsafe.Sizeof(num) + rowSize*uintptr(num))) {
-		return nil, fmt.Errorf("system error: GetIpForwardTable returns the number is too long, beyond the buffer。")
+		return nil, fmt.Errorf("system error: GetIpForwardTable returns the number is too long, beyond the buffer.")
 	}
 
 	for i := uint32(0); i < num; i++ {
-		routes[i] = *((*RouteRule)(unsafe.Pointer(sr + (rowSize * uintptr(i)))))
+		routes[i] = *((*routeRule)(unsafe.Pointer(sr + (rowSize * uintptr(i)))))
 	}
 
 	return routes, nil
 }
 
-func (rt *routeManager) delRoute(rr *RouteRule) error {
+func (rt *routeManager) delRoute(rr *routeRule) error {
 	r1, _, err := rt.deleteIpForwardEntry.Call(uintptr(unsafe.Pointer(rr)))
 	if r1 != 0 {
-		return fmt.Errorf("delete routing table%#v error, return value：%v ,err:%v", rr, r1, err)
+		return fmt.Errorf("delete routing table%#v error, return value: %v ,err:%v", rr, r1, err)
 	}
 	return nil
 }
@@ -214,7 +214,7 @@ func (rt *routeManager) getInterfaceIP(index int) *netInterface {
 }
 
 func (rt *routeManager) ListRoutes() ([]Route, error) {
-	buf := make([]byte, 4+unsafe.Sizeof(RouteRule{}))
+	buf := make([]byte, 4+unsafe.Sizeof(routeRule{}))
 	buf_len := uint32(len(buf))
 
 	rt.getIpForwardTable.Call(uintptr(unsafe.Pointer(&buf[0])),
@@ -236,9 +236,9 @@ func (rt *routeManager) ListRoutes() ([]Route, error) {
 	}
 
 	num := *(*uint32)(unsafe.Pointer(&buf[0]))
-	routes := make([]RouteRule, num)
+	routes := make([]routeRule, num)
 	sr := uintptr(unsafe.Pointer(&buf[0])) + unsafe.Sizeof(num)
-	rowSize := unsafe.Sizeof(RouteRule{})
+	rowSize := unsafe.Sizeof(routeRule{})
 
 	// 安全检查
 	if len(buf) < int((unsafe.Sizeof(num) + rowSize*uintptr(num))) {
@@ -246,7 +246,7 @@ func (rt *routeManager) ListRoutes() ([]Route, error) {
 	}
 
 	for i := uint32(0); i < num; i++ {
-		routes[i] = *((*RouteRule)(unsafe.Pointer(sr + (rowSize * uintptr(i)))))
+		routes[i] = *((*routeRule)(unsafe.Pointer(sr + (rowSize * uintptr(i)))))
 	}
 
 	ret := make([]Route, 0)
@@ -266,16 +266,13 @@ func (rt *routeManager) ListRoutes() ([]Route, error) {
 			Gateway:       net.IPv4(route.NextHop[0], route.NextHop[1], route.NextHop[2], route.NextHop[3]).String(),
 			InterfaceIP:   ifIp,
 			InterfaceName: ifName,
-			Metric:        strconv.Itoa(int(route.Metric1)),
-			Type:          rt.getType(route.Type),
-			Protocol:      rt.getProtocol(route.Proto),
 		})
 	}
 
 	return ret, nil
 }
 
-func (rt *routeManager) addRoute(rr *RouteRule) error {
+func (rt *routeManager) addRoute(rr *routeRule) error {
 	r1, _, err := rt.createIpForwardEntry.Call(uintptr(unsafe.Pointer(rr)))
 	fmt.Printf("r:%v,err:%v", r1, err)
 	if r1 == 5010 {
@@ -284,34 +281,4 @@ func (rt *routeManager) addRoute(rr *RouteRule) error {
 		return fmt.Errorf("add routing table%#v error, return value: %v, err:%v", rr, r1, err)
 	}
 	return nil
-}
-
-func (rt *routeManager) getProtocol(protocol uint32) string {
-	/*
-		3静态路由 2本地接口 5EGP网关
-	*/
-	switch protocol {
-	case 2:
-		return "Local Interface"
-	case 3:
-		return "Static Route"
-	case 5:
-		return "EGP Gateway"
-	default:
-		return ""
-	}
-}
-
-func (rt *routeManager) getType(t uint32) string {
-	/*
-		//3 本地接口  4 远端接口
-	*/
-	switch t {
-	case 3:
-		return "Direct"
-	case 4:
-		return "Indirect"
-	default:
-		return ""
-	}
 }
