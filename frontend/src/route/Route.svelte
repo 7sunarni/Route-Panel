@@ -1,6 +1,7 @@
 <script lang="ts">
     import type { route } from "wailsjs/go/models";
     import { i18n } from "../i18n/i18n";
+    import { validIP, validNetMask } from "../utils/utils";
 
     export let show: boolean = false;
     export let rt: route.Route;
@@ -18,17 +19,6 @@
     function _onCancel() {
         onCancel();
         close();
-    }
-
-    function validIP(ipaddress: string) {
-        if (
-            /^(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)$/.test(
-                ipaddress,
-            )
-        ) {
-            return true;
-        }
-        return false;
     }
 
     function selectInterfaceName(event: any) {
@@ -76,8 +66,17 @@
     }
 
     function _onOkay() {
-        if (!validIP(destination)) {
-            alert("Invalid IP");
+        if (interfaceName == "") {
+            alert("select interface");
+            return;
+        }
+
+        if (!validIP(ip)) {
+            alert("invalid ip address");
+            return;
+        }
+        if (!validNetMask(mask)) {
+            alert("invalid net mask");
             return;
         }
         let want: route.Route = {
@@ -114,12 +113,13 @@
                 />
                 <label for={mask}>{$i18n("table.mask")}</label>
                 <input value={mask} class="input" on:input={onMaskChange} />
-                <label for={interfaceName}>{$i18n("table.interfacaName")}</label
-                >
+                <label for={interfaceName}
+                    >{$i18n("table.interfacaName")}
+                </label>
                 <select
                     class="input"
                     value={interfaceName}
-                    on:select={selectInterfaceName}
+                    on:change={selectInterfaceName}
                 >
                     {#each interfaceNames as interfaceName}
                         <option value={interfaceName}>

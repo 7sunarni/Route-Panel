@@ -69,7 +69,12 @@ func Add(route Route) error {
 			continue
 		}
 
-		if router.getInterfaceIP(int(r.IfIndex)).ip.String() != route.InterfaceIP {
+		iFace := router.getInterfaceIP(int(r.IfIndex))
+		if iFace == nil {
+			continue
+		}
+
+		if iFace.name != route.InterfaceName {
 			continue
 		}
 		aim = &r
@@ -107,7 +112,12 @@ func Delete(rr Route) error {
 			continue
 		}
 
-		if router.getInterfaceIP(int(r.IfIndex)).ip.String() != rr.InterfaceIP {
+		iFace := router.getInterfaceIP(int(r.IfIndex))
+		if iFace == nil {
+			continue
+		}
+
+		if iFace.name != rr.InterfaceName {
 			continue
 		}
 
@@ -123,7 +133,7 @@ func Delete(rr Route) error {
 	}
 
 	if aim == nil {
-		return errors.New("don not find route")
+		return errors.New("don't find route")
 	}
 	return router.delRoute(aim)
 }
@@ -274,7 +284,7 @@ func (rt *routeManager) ListRoutes() ([]Route, error) {
 
 func (rt *routeManager) addRoute(rr *routeRule) error {
 	r1, _, err := rt.createIpForwardEntry.Call(uintptr(unsafe.Pointer(rr)))
-	fmt.Printf("r:%v,err:%v", r1, err)
+	fmt.Printf("add route r: %v,err: %v", r1, err)
 	if r1 == 5010 {
 		return nil
 	} else if r1 != 0 {

@@ -1,17 +1,14 @@
 <script lang="ts">
   import type { route } from "../wailsjs/go/models";
-  import { AddRoute, DeleteRoute, ListRoutes } from "../wailsjs/go/main/App.js";
+  import {
+    AddRoute,
+    DeleteRoute,
+    ListRoutes,
+    EditRoute,
+  } from "../wailsjs/go/main/App.js";
   import { onMount } from "svelte";
   import Routeview from "./route/Route.svelte";
   import { i18n, locale, locales } from "./i18n/i18n.js";
-
-  let header = [
-    $i18n("table.destination"),
-    $i18n("table.mask"),
-    $i18n("table.gateway"),
-    $i18n("table.interfacaName"),
-    $i18n("table.options"),
-  ];
 
   const itemsPerPage: number = 10;
 
@@ -34,12 +31,21 @@
 
   function deleteRoute(r: route.Route) {
     DeleteRoute(r).then(() => {
+      alert("delete route success");
       refresh();
     });
   }
 
   function addRoute(r: route.Route) {
     AddRoute(r).then(() => {
+      alert("add route success");
+      refresh();
+    });
+  }
+
+  function editRoute(old: route.Route, want: route.Route) {
+    EditRoute(old, want).then(() => {
+      alert("edit route success");
       refresh();
     });
   }
@@ -67,7 +73,7 @@
     setPage(currentPage);
   }
 
-  function editRoute(choosen: route.Route) {
+  function onEditRoute(choosen: route.Route) {
     choosenRoute = choosen;
     setShowEdit(true);
   }
@@ -96,26 +102,30 @@
   };
 
   function onSaveEdit(old: route.Route, want: route.Route) {
-    if (old && old.destination !== "") {
-      deleteRoute(old);
-    }
     want.interfaceIp = interfaceNames[want.interfaceName];
-    addRoute(want);
+    if (old && old.destination !== "") {
+      editRoute(old, want);
+    } else {
+      addRoute(want);
+    }
     setShowEdit(false);
   }
 
   function refresh() {
     ListRoutes().then((result: route.Route[]) => {
+      let filteNonInterface: route.Route[] = [];
       result.forEach((r: route.Route) => {
         if (r.interfaceName === "") {
           return;
         }
+        filteNonInterface.push(r);
         if (r.interfaceName in interfaceNames) {
           return;
         }
         interfaceNames[r.interfaceName] = r.interfaceIp;
       });
-      totalRoutes = result;
+
+      totalRoutes = filteNonInterface;
       paginate(totalRoutes);
       setPage(currentPage);
     });
@@ -145,7 +155,7 @@
     <button
       class="btn"
       on:click={() =>
-        editRoute({
+        onEditRoute({
           destination: "",
           mask: "",
           gateway: "",
@@ -161,9 +171,11 @@
   </div>
   <table>
     <tr>
-      {#each header as column}
-        <th>{column}</th>
-      {/each}
+      <th>{$i18n("table.destination")}</th>
+      <th>{$i18n("table.mask")}</th>
+      <th>{$i18n("table.gateway")}</th>
+      <th>{$i18n("table.interfacaName")}</th>
+      <th>{$i18n("table.options")}</th>
     </tr>
 
     {#each currentPageRoutes as route}
@@ -173,7 +185,7 @@
         <td contenteditable="false" bind:innerHTML={route.gateway} />
         <td contenteditable="false" bind:innerHTML={route.interfaceName} />
         <td>
-          <button on:click={() => editRoute(route)}
+          <button on:click={() => onEditRoute(route)}
             >{$i18n("table.edit")}</button
           >
           <button on:click={() => deleteRoute(route)}
