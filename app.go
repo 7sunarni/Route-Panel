@@ -27,32 +27,38 @@ func (a *App) ListRoutes() []route.Route {
 	return ret
 }
 
-func (a *App) AddRoute(r route.Route) error {
+func (a *App) AddRoute(r route.Route) string {
 	log.Printf("add route %s %s %s", r.Destination, r.Mask, r.InterfaceName)
 	err := route.Add(r)
 	if err != nil {
 		log.Printf("add route failed %s", err)
 	}
-	return err
+	if err == nil {
+		return ""
+	}
+	return err.Error()
 }
 
-func (a *App) DeleteRoute(r route.Route) error {
+func (a *App) DeleteRoute(r route.Route) string {
 	log.Printf("delete route %s %s %s", r.Destination, r.Mask, r.InterfaceName)
 	err := route.Delete(r)
 	if err != nil {
 		log.Printf("delete route failed %s", err)
 	}
-	return err
+	if err == nil {
+		return ""
+	}
+	return err.Error()
 }
 
-func (a *App) EditRoute(before, after route.Route) error {
+func (a *App) EditRoute(before, after route.Route) string {
 	log.Printf("delete route before %s %s %s, after %s %s %s",
 		before.Destination, before.Mask, before.InterfaceName,
 		after.Destination, after.Mask, after.InterfaceName,
 	)
 	if err := route.Delete(before); err != nil {
 		log.Printf("delete route failed %s", err)
-		return err
+		return err.Error()
 	}
 	// TODO: rollback
 	log.Printf("edit route %s %s %s", after.Destination, after.Gateway, after.InterfaceName)
@@ -60,5 +66,8 @@ func (a *App) EditRoute(before, after route.Route) error {
 	if err != nil {
 		log.Printf("add route failed %s", err)
 	}
-	return err
+	if err == nil {
+		return ""
+	}
+	return err.Error()
 }

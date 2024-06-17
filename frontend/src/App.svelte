@@ -9,6 +9,11 @@
   import { onMount } from "svelte";
   import Routeview from "./route/Route.svelte";
   import { i18n, locale, locales } from "./i18n/i18n.js";
+  import { toast } from "@zerodevx/svelte-toast";
+  import { SvelteToast } from "@zerodevx/svelte-toast";
+
+  // Optionally set default options here
+  const options = {};
 
   const itemsPerPage: number = 10;
 
@@ -30,22 +35,55 @@
     totalPagesRoutes.length > 0 ? totalPagesRoutes[currentPage] : [];
 
   function deleteRoute(r: route.Route) {
-    DeleteRoute(r).then(() => {
-      alert("delete route success");
+    DeleteRoute(r).then((msg: string) => {
+      if (msg !== "") {
+        toast.push(msg);
+        return;
+      }
+      toast.push("Delete route success", {
+        theme: {
+          "--toastColor": "mintcream",
+          "--toastBackground": "rgba(72,187,120,0.9)",
+          "--toastBarBackground": "#2F855A",
+          "--toastBarHeight": 0,
+        },
+      });
       refresh();
     });
   }
 
   function addRoute(r: route.Route) {
-    AddRoute(r).then(() => {
-      alert("add route success");
+    AddRoute(r).then((msg: string) => {
+      if (msg !== "") {
+        toast.push(msg);
+        return;
+      }
+      toast.push("Add route success", {
+        theme: {
+          "--toastColor": "mintcream",
+          "--toastBackground": "rgba(72,187,120,0.9)",
+          "--toastBarBackground": "#2F855A",
+          "--toastBarHeight": 0,
+        },
+      });
       refresh();
     });
   }
 
   function editRoute(old: route.Route, want: route.Route) {
-    EditRoute(old, want).then(() => {
-      alert("edit route success");
+    EditRoute(old, want).then((msg: string) => {
+      if (msg !== "") {
+        toast.push(msg);
+        return;
+      }
+      toast.push("Edit route success", {
+        theme: {
+          "--toastColor": "mintcream",
+          "--toastBackground": "rgba(72,187,120,0.9)",
+          "--toastBarBackground": "#2F855A",
+          "--toastBarHeight": 0,
+        },
+      });
       refresh();
     });
   }
@@ -133,6 +171,7 @@
 </script>
 
 <main>
+  <SvelteToast {options} />
   <Routeview
     rt={choosenRoute}
     show={showEdit}

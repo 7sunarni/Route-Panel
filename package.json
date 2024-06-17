@@ -1,0 +1,5 @@
+{
+  "devDependencies": {
+    "@zerodevx/svelte-toast": "^0.9.5"
+  }
+}
